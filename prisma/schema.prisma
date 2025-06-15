@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum GenerateStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+enum ExpType {
+  EARN_SUCCESS_GENERATE
+  ADJUSTMENT_EXP
+}
+
+enum TokenType {
+  PURCHASE
+  REFUND_TOKEN
+  ADJUSTMENT_TOKEN
+  SPEND
+}
+
+enum NotificationType {
+  SUCCESS
+  INFO
+  WARNING
+  ERROR
+  PROMOTION
+  STATUS_UPDATE
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id       String @id @default(uuid())
+  username String @unique @db.VarChar(50)
+  address  String @unique @db.VarChar(255)
+
+  point Int @default(0)
+  token Int @default(0)
+
+  role         Role    @default(USER)
+  profileImage String? @db.VarChar(255)
+  password     String?
+
+  favorites        Favorite[]
+  sessions         Session[]
+  expHistory       ExpHistory[]
+  tokenHistory     TokenHistory[]
+  generateAttempts GenerateAttempt[]
+  notifications    Notification[]
+  payments         Payment[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  token        String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+model WalletNonce {
+  address String @id @db.VarChar(255)
+  nonce   String @db.VarChar(255)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+model VideoGenerationResult {
+  id    String  @id @default(uuid())
+  jobId String? @unique
+
+  prompt           String  @db.Text
+  imagePrompt      String? @db.Text
+  durationSeconds  Int
+  negativePrompt   String? @db.Text
+  enhancePrompt    Boolean @default(true)
+  seed             BigInt?
+  storageUri       String? @db.Text
+  sampleCount      Int     @default(1)
+  aspectRatio      String  @default("16:9") @db.VarChar(10)
+  personGeneration String  @default("allow_adult") @db.VarChar(50)
+  generateAudio    Boolean @default(true)
+
+  status       GenerateStatus @default(PENDING)
+  errorMessage String?        @db.Text
+
+  videoFiles VideoFile[]
+
+  favorites        Favorite[]
+  generateAttempts GenerateAttempt[]
+  views            Int               @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([jobId])
+  @@index([status])
+  @@index([views])
+}
+
+model VideoFile {
+  id                      String                @id @default(uuid())
+  videoGenerationResultId String
+  videoGenerationResult   VideoGenerationResult @relation(fields: [videoGenerationResultId], references: [id], onDelete: Cascade)
+  videoUrl                String                @db.Text
+  thumbnailUrl            String?               @db.Text
+  createdAt               DateTime              @default(now())
+  deletedAt               DateTime?
+
+  @@index([videoGenerationResultId])
+}
+
+model Favorite {
+  id       String  @id @default(uuid())
+  userId   String
+  resultId String? @db.VarChar(100)
+
+  user   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  result VideoGenerationResult? @relation(fields: [resultId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@unique([userId, resultId])
+}
+
+model ExpHistory {
+  id          String  @id @default(uuid())
+  userId      String
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        ExpType
+  amount      Int
+  description String  @db.Text
+  referenceId String? @db.VarChar(255)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([userId])
+}
+
+model TokenHistory {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        TokenType
+  amount      Int
+  description String    @db.Text
+  referenceId String?   @db.VarChar(255)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([userId])
+}
+
+model GenerateAttempt {
+  id          String                 @id @default(uuid())
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resultId    String?
+  videoResult VideoGenerationResult? @relation(fields: [resultId], references: [id], onDelete: SetNull)
+
+  tokensUsed   Int
+  status       GenerateStatus
+  isRefunded   Boolean        @default(false)
+  refundAmount Int            @default(0)
+  errorMessage String?        @db.Text
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([userId])
+  @@index([resultId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String           @db.VarChar(255)
+  message   String           @db.Text
+  type      NotificationType
+  actionUrl String?          @db.Text
+  isRead    Boolean          @default(false)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([userId, isRead])
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packId            String?
+  itemPack          ItemPack?     @relation(fields: [packId], references: [id], onDelete: SetNull)
+  customTokenAmount Int?
+  totalPrice        Decimal       @db.Decimal(10, 2)
+  currency          String        @default("USDT") @db.VarChar(10)
+  paymentProofImage String?       @db.Text
+  status            PaymentStatus @default(PENDING)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId, status])
+}
+
+model ItemPack {
+  id          String  @id @default(uuid())
+  name        String  @unique @db.VarChar(100)
+  description String? @db.Text
+  tokens      Int
+  price       Decimal @db.Decimal(10, 2)
+  isCustom    Boolean @default(false)
+
+  payments Payment[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
