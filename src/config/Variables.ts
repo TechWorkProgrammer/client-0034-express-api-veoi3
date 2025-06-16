@@ -18,13 +18,10 @@ class Variables {
     static RATE_LIMIT_MAX: number;
     static RATE_LIMIT_WINDOW_MS: number;
     static MAX_FILE_SIZE: number;
-    static GOOGLE_APPLICATION_CREDENTIALS: string;
+    static FAL_KEY: string;
     static REDIS_HOST: string;
     static REDIS_PORT: number;
     static REDIS_PASSWORD?: string;
-    static GCP_PROJECT_ID: string;
-    static GCP_LOCATION: string;
-    static GCS_BUCKET_NAME: string;
 
     static boot(): void {
         dotenv.config();
@@ -47,13 +44,10 @@ class Variables {
         this.RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS ? parseInt(process.env.RATE_LIMIT_WINDOW_MS) : 60000;
         this.RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX ? parseInt(process.env.RATE_LIMIT_MAX) : 30;
         this.MAX_FILE_SIZE = process.env.MAX_FILE_SIZE ? parseInt(process.env.MAX_FILE_SIZE) : 1048576;
-        this.GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS || this.throwError("GOOGLE_APPLICATION_CREDENTIALS");
+        this.FAL_KEY = process.env.FAL_KEY || this.throwError("FAL_KEY");
         this.REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1';
         this.REDIS_PORT = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379;
         this.REDIS_PASSWORD = process.env.REDIS_PASSWORD || undefined;
-        this.GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || this.throwError("GCP_PROJECT_ID");
-        this.GCP_LOCATION = process.env.GCP_LOCATION || "us-central1";
-        this.GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME || this.throwError("GCS_BUCKET_NAME");
     }
 
     static throwError(variable: string): never {

@@ -3,63 +3,93 @@ import Response from "@/config/Response";
 import VideoService from "@/service/VideoService";
 import {moveAndStoreImage} from "@/config/Multer";
 import QueueManager from "@/config/QueueManager";
-import {readFileSync} from 'fs';
 import NotificationController from "@/controller/NotificationController";
 
 const TOKENS_PER_SECOND = 10;
+const TOKENS_PER_SECOND_AUDIO = 15;
 
 class VideoController {
     public static async generate(req: Request, res: EResponse): Promise<void> {
         const user = res.locals.user;
         const file = req.file;
-        const {sampleCount, generateAudio, durationSeconds, ...restOfBody} = req.body;
-        const numericDuration = Number(durationSeconds);
+        const {durationSeconds, sampleCount, generateAudio, ...restOfBody} = req.body;
 
-        const tokensRequired = numericDuration * TOKENS_PER_SECOND;
+        const numericDuration = Number(durationSeconds);
+        const numericSampleCount = Number(sampleCount) || 1;
+        const costPerSecond = TOKENS_PER_SECOND + (generateAudio === 'true' ? TOKENS_PER_SECOND_AUDIO : 0);
+        const tokensRequired = (numericDuration * costPerSecond) * numericSampleCount;
+
         if (user.token < tokensRequired) {
             Response.BadRequest(res, `Insufficient tokens. Required: ${tokensRequired}, Available: ${user.token}`);
             return;
         }
 
-        let imagePromptUrl: string | null = null;
-        if (file) {
-            imagePromptUrl = await moveAndStoreImage(file);
-        }
+        const imagePromptUrl = file ? await moveAndStoreImage(file) : null;
 
-        const imageBase64 = file ? readFileSync(file.path, 'base64') : null;
-
-        const {videoResult} = await VideoService.initiateGeneration({
-            userId: user.id,
-            ...restOfBody,
-            sampleCount: Number(sampleCount),
-            generateAudio: generateAudio === 'true',
-            durationSeconds: numericDuration,
-            imagePrompt: imagePromptUrl,
-            tokensRequired: tokensRequired,
-        });
-
-        await QueueManager.videoQueue.add('generate-video', {
-            videoResultId: videoResult.id,
-            userId: user.id,
-            jobData: {
+        try {
+            const {videoResult} = await VideoService.initiateGeneration({
+                userId: user.id,
                 ...restOfBody,
                 durationSeconds: numericDuration,
-                image: imageBase64 ? {bytesBase64Encoded: imageBase64, mimeType: file?.mimetype} : undefined,
-            }
-        });
+                sampleCount: numericSampleCount,
+                generateAudio: generateAudio === 'true',
+                imagePrompt: imagePromptUrl,
+                tokensRequired: tokensRequired,
+            });
 
-        Response.Accepted(res, "Video generation started. You will be notified.", {resultId: videoResult.id});
+            await QueueManager.videoQueue.add('generate-video', {
+                videoResultId: videoResult.id,
+                userId: user.id,
+                jobData: {
+                    ...restOfBody,
+                    durationSeconds: numericDuration,
+                    sampleCount: numericSampleCount,
+                    generateAudio: generateAudio === 'true',
+                    image_url: imagePromptUrl
+                }
+            });
+
+            Response.Accepted(res, "Video generation started. You will be notified.", {resultId: videoResult.id});
+
+        } catch (error: any) {
+            Response.BadRequest(res, error.message);
+        }
     }
 
     public static async getPublicVideos(req: Request, res: EResponse): Promise<void> {
         const result = await VideoService.getVideos(req.query);
-        Response.Success(res, "Videos retrieved successfully", result);
+        const serializedVideos = result.videos.map(video => {
+            return {
+                ...video,
+                seed: video.seed ? video.seed.toString() : null,
+            };
+        });
+
+        const finalResult = {
+            ...result,
+            videos: serializedVideos,
+        };
+
+        Response.Success(res, "Videos retrieved successfully", finalResult);
     }
 
     public static async getUserVideos(req: Request, res: EResponse): Promise<void> {
         const user = res.locals.user;
         const result = await VideoService.getVideos({...req.query, userId: user.id});
-        Response.Success(res, "User videos retrieved successfully", result);
+
+        const serializedVideos = result.videos.map(video => {
+            return {
+                ...video,
+                seed: video.seed ? video.seed.toString() : null,
+            };
+        });
+
+        const finalResult = {
+            ...result,
+            videos: serializedVideos,
+        };
+
+        Response.Success(res, "User videos retrieved successfully", finalResult);
     }
 
     public static async incrementView(req: Request, res: EResponse): Promise<void> {
@@ -98,14 +128,18 @@ class VideoController {
 
     public static async getResultById(req: Request, res: EResponse): Promise<void> {
         const {resultId} = req.params;
-        const user = res.locals.user;
 
-        const result = await VideoService.getGenerationResult(resultId, user.id);
+        const result = await VideoService.getGenerationResult(resultId);
         if (!result) {
             Response.NotFound(res, "Generation result not found or you don't have access.");
             return;
         }
-        Response.Success(res, "Result retrieved successfully", result);
+        const serializedResult = {
+            ...result,
+            seed: result.seed ? result.seed.toString() : null,
+        };
+
+        Response.Success(res, "Result retrieved successfully", serializedResult);
     }
 }
 

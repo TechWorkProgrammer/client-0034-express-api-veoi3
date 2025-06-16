@@ -14,7 +14,7 @@ class VideoValidation extends Validator {
             enhancePrompt: Joi.boolean().optional().default(true),
             seed: Joi.number().integer().min(0).optional(),
             sampleCount: Joi.number().integer().min(1).max(4).optional().default(1),
-            aspectRatio: Joi.string().valid("16:9", "1:1", "4:5").optional().default("16:9"),
+            aspectRatio: Joi.string().valid("16:9", "1:1", "9:16").optional().default("16:9"),
             personGeneration: Joi.string().valid('allow_adult', 'dont_allow').optional().default('allow_adult'),
             generateAudio: Joi.boolean().optional().default(true),
         }));

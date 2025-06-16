@@ -14,9 +14,7 @@
     "worker:prod": "node dist/worker.js"
   },
   "dependencies": {
-    "@google-cloud/aiplatform": "^4.2.0",
-    "@google-cloud/storage": "^7.16.0",
-    "@google-cloud/vertexai": "^1.10.0",
+    "@fal-ai/client": "^1.5.0",
     "@prisma/client": "^6.9.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.7",

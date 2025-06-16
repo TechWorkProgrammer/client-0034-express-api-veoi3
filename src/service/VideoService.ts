@@ -76,18 +76,14 @@ class VideoService extends Service {
         });
     }
 
-    public static async getGenerationResult(resultId: string, userId: string) {
+    public static async getGenerationResult(resultId: string) {
         try {
             return this.prisma.videoGenerationResult.findFirstOrThrow({
                 where: {
                     id: resultId,
-                    generateAttempts: {
-                        some: {
-                            userId: userId,
-                        }
-                    }
                 },
                 include: {
+                    generateAttempts: true,
                     videoFiles: true
                 }
             });
