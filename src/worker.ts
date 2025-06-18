@@ -1,9 +1,10 @@
-import { Worker } from 'bullmq';
-import { GenerateStatus } from '@prisma/client';
+import {Worker} from 'bullmq';
+import {GenerateStatus} from '@prisma/client';
 import VideoService from "@/service/VideoService";
 import FalAIService from "@/service/FalAIService";
 import NotificationController from "@/controller/NotificationController";
 import Variables from "@/config/Variables";
+import UserService from "@/service/UserService";
 
 Variables.boot();
 
@@ -16,14 +17,14 @@ const connectionOptions = {
 console.log("🚀 Video generation worker (using Fal AI) started...");
 
 const worker = new Worker('video-generation', async job => {
-    const { videoResultId, userId, jobData } = job.data;
+    const {videoResultId, userId, jobData} = job.data;
     console.log(`[WORKER] Processing job ${job.id} for videoResult: ${videoResultId}`);
     try {
         await VideoService.updateGenerationStatus(videoResultId, GenerateStatus.PROCESSING);
         const result = await FalAIService.generateVideo(jobData);
         const videoUrlFromFal = result.video.url;
         const localVideoUrl = await FalAIService.downloadAndSave(videoUrlFromFal);
-        await VideoService.addVideoFiles(videoResultId, [{ videoUrl: localVideoUrl, thumbnailUrl: null }]);
+        await VideoService.addVideoFiles(videoResultId, [{videoUrl: localVideoUrl, thumbnailUrl: null}]);
         await VideoService.updateGenerationStatus(videoResultId, GenerateStatus.COMPLETED);
         await NotificationController.sendNotification({
             userId,
@@ -32,6 +33,7 @@ const worker = new Worker('video-generation', async job => {
             actionUrl: "/gallery",
             type: 'SUCCESS'
         });
+        await UserService.incrementUserToken(userId, 1);
         console.log(`[WORKER] Job ${job.id} completed successfully.`);
     } catch (error: any) {
         console.error(`[WORKER] Job ${job.id} failed:`, error.message);
@@ -44,7 +46,7 @@ const worker = new Worker('video-generation', async job => {
         });
         throw error;
     }
-}, { connection: connectionOptions });
+}, {connection: connectionOptions});
 
 worker.on('failed', (job, err) => {
     console.error(`Job ${job?.id} has failed with error: ${err.message}`);

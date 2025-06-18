@@ -6,7 +6,7 @@ import QueueManager from "@/config/QueueManager";
 import NotificationController from "@/controller/NotificationController";
 
 const TOKENS_PER_SECOND = 10;
-const TOKENS_PER_SECOND_AUDIO = 15;
+const TOKENS_PER_SECOND_AUDIO = 5;
 
 class VideoController {
     public static async generate(req: Request, res: EResponse): Promise<void> {
