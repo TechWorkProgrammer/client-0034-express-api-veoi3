@@ -13,7 +13,8 @@ class UserService extends Service {
                     username: randomUsername,
                     address: address,
                     password,
-                    point: 0
+                    point: 0,
+                    token: 80
                 }
             });
         } catch (error) {
@@ -31,7 +32,8 @@ class UserService extends Service {
                     username: username,
                     address: address,
                     password,
-                    point: 0
+                    point: 0,
+                    token: 80,
                 }
             });
         } catch (error) {

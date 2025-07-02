@@ -87,13 +87,9 @@ class AuthController extends Service {
         }
 
         const user = await UserService.getUserByUsername(username);
-        if (!user) {
-            Response.NotFound(res, "Account not found");
-            return;
-        }
 
-        if (user.password !== password) {
-            Response.Forbidden(res, "Password does not match");
+        if (!user || user.password !== password) {
+            Response.Forbidden(res, "Username and password mismatch");
             return;
         }
 
