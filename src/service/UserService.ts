@@ -2,6 +2,11 @@ import {randomBytes} from "crypto";
 import Service from "@/service/Service";
 import {Prisma, User} from "@prisma/client";
 import {IGetAllUsersOptions, IPaginatedUserResult} from "@/types/User";
+import {
+    IAddExpOptions,
+    IGetExpHistoryOptions,
+    IPaginatedExpResult,
+} from "@/types/Point";
 
 class UserService extends Service {
     public static async createUser(address: string, password?: string | null): Promise<User> {
@@ -154,18 +159,6 @@ class UserService extends Service {
         }
     }
 
-    public static async incrementUserToken(userId: string, tokensToAdd: number): Promise<User> {
-        try {
-            return this.prisma.user.update({
-                where: {id: userId},
-                data: {token: {increment: tokensToAdd}}
-            });
-        } catch (error) {
-            this.handleError(error);
-            throw error;
-        }
-    }
-
     public static async updateUserTokens(userId: string, currentTotal: number, newTotal: number, adminId: string): Promise<User> {
         try {
             const changeAmount = newTotal - currentTotal;
@@ -185,6 +178,67 @@ class UserService extends Service {
                 })
             ]);
 
+            return updatedUser;
+        } catch (error) {
+            this.handleError(error);
+            throw error;
+        }
+    }
+
+    public static async getExpHistoryByUser(userId: string, options: IGetExpHistoryOptions): Promise<IPaginatedExpResult> {
+        try {
+            const { page = 1, limit = 10 } = options;
+
+            const skip = (page - 1) * limit;
+            const [total, history] = await this.prisma.$transaction([
+                this.prisma.expHistory.count({
+                    where: { userId },
+                }),
+                this.prisma.expHistory.findMany({
+                    where: { userId },
+                    skip: skip,
+                    take: limit,
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                }),
+            ]);
+
+            const totalPages = Math.ceil(total / limit);
+
+            return {
+                history,
+                pagination: {
+                    total,
+                    totalPages,
+                    currentPage: page,
+                    limit,
+                },
+            };
+        } catch (error) {
+            this.handleError(error);
+            throw error;
+        }
+    }
+
+    public static async addExpAndCreateHistory(options: IAddExpOptions): Promise<User> {
+        const { userId, amount, type, description, referenceId } = options;
+        try {
+            const [updatedUser] = await this.prisma.$transaction([
+                this.prisma.user.update({
+                    where: { id: userId },
+                    data: { point: { increment: amount } },
+                }),
+                this.prisma.expHistory.create({
+                    data: {
+                        userId,
+                        type,
+                        amount,
+                        description,
+                        referenceId,
+                    },
+                }),
+            ]);
             return updatedUser;
         } catch (error) {
             this.handleError(error);

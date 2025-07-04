@@ -130,7 +130,7 @@ class VideoService extends Service {
 
     public static async getVideos(options: IGetVideosOptions) {
         try {
-            const {page = 1, limit = 12, sortBy = 'newest', userId} = options;
+            const {page = 1, limit = 12, sortBy = 'newest', userId, favoritedBy} = options;
 
             let orderBy: Prisma.VideoGenerationResultOrderByWithRelationInput = {createdAt: 'desc'};
             if (sortBy === 'views') orderBy = {views: 'desc'};
@@ -139,7 +139,8 @@ class VideoService extends Service {
             const where: Prisma.VideoGenerationResultWhereInput = {
                 status: 'COMPLETED',
                 deletedAt: null,
-                generateAttempts: userId ? {some: {userId: userId}} : undefined
+                generateAttempts: userId ? {some: {userId: userId}} : undefined,
+                favorites: favoritedBy ? {some: {userId: favoritedBy}} : undefined
             };
 
             const [total, videos] = await this.prisma.$transaction([

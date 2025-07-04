@@ -18,4 +18,5 @@ export interface IGetVideosOptions {
     limit?: number;
     sortBy?: 'newest' | 'views' | 'likes';
     userId?: string;
+    favoritedBy?: string;
 }

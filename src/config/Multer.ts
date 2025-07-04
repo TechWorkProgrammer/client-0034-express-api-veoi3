@@ -19,6 +19,15 @@ const uploaderMiddleware = multer({
         }
     }),
     limits: {fileSize: Variables.MAX_FILE_SIZE},
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|webp/;
+        const mimetype = allowedTypes.test(file.mimetype);
+        if (mimetype) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only jpeg, png, and webp are allowed.'));
+        }
+    }
 }).single('image');
 
 export const moveAndStoreImage = async (file: Express.Multer.File): Promise<string> => {

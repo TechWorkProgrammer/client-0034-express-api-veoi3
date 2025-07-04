@@ -45,7 +45,7 @@ class VideoController {
                     durationSeconds: numericDuration,
                     sampleCount: numericSampleCount,
                     generateAudio: generateAudio === 'true',
-                    image_url: imagePromptUrl
+                    imageUrl: imagePromptUrl
                 }
             });
 
@@ -114,7 +114,7 @@ class VideoController {
                 if (videoOwnerId && videoOwnerId !== liker.id) {
                     await NotificationController.sendNotification({
                         userId: videoOwnerId,
-                        title: "You've got a new like! 👍",
+                        title: "You've got a new like!",
                         message: `${liker.username} liked your video: "${video.prompt.substring(0, 40)}..."`,
                         type: 'INFO',
                         actionUrl: `/video/${video.id}`
@@ -140,6 +140,23 @@ class VideoController {
         };
 
         Response.Success(res, "Result retrieved successfully", serializedResult);
+    }
+
+    public static async getFavoriteVideos(req: Request, res: EResponse): Promise<void> {
+        const user = res.locals.user;
+        const result = await VideoService.getVideos({...req.query, favoritedBy: user.id});
+        const serializedVideos = result.videos.map(video => {
+            return {
+                ...video,
+                seed: video.seed ? video.seed.toString() : null,
+            };
+        });
+        const finalResult = {
+            ...result,
+            videos: serializedVideos,
+        };
+
+        Response.Success(res, "Favorite videos retrieved successfully", finalResult);
     }
 }
 

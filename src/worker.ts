@@ -1,5 +1,5 @@
 import {Worker} from 'bullmq';
-import {GenerateStatus} from '@prisma/client';
+import {ExpType, GenerateStatus} from '@prisma/client';
 import VideoService from "@/service/VideoService";
 import FalAIService from "@/service/FalAIService";
 import NotificationController from "@/controller/NotificationController";
@@ -33,7 +33,21 @@ const worker = new Worker('video-generation', async job => {
             actionUrl: "/gallery",
             type: 'SUCCESS'
         });
-        await UserService.incrementUserToken(userId, 1);
+        const expAmount = 10;
+        await UserService.addExpAndCreateHistory({
+            userId,
+            amount: expAmount,
+            type: ExpType.EARN_SUCCESS_GENERATE,
+            description: `You earned ${expAmount} $veoi3 for successfully generating a video.`,
+            referenceId: videoResultId,
+        });
+
+        await NotificationController.sendNotification({
+            userId,
+            title: `You've earned ${expAmount} $veoi3!`,
+            message: `Congratulations! You received ${expAmount} $veoi3 for creating a new video.`,
+            type: 'SUCCESS'
+        });
         console.log(`[WORKER] Job ${job.id} completed successfully.`);
     } catch (error: any) {
         console.error(`[WORKER] Job ${job.id} failed:`, error.message);

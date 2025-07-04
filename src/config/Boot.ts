@@ -15,7 +15,6 @@ class Boot {
 
     private static server = createServer(this.app);
 
-
     public static async boot(): Promise<void> {
         await AnimationConsole.dots('Processing: getting information', new Promise<void>((resolve) => {
             Variables.boot();
@@ -37,7 +36,7 @@ class Boot {
     }
 
     private static booting(): void {
-        this.app.set('trust proxy', false);
+        this.app.set('trust proxy', 1);
         WebSocket.boot(this.server);
         Limiter.boot();
         QueueManager.boot();

@@ -1,8 +1,8 @@
-import { fal, Result } from '@fal-ai/client';
+import {fal, Result} from '@fal-ai/client';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import {v4 as uuidv4} from 'uuid';
 import Service from "@/service/Service";
 import Variables from '@/config/Variables';
 
@@ -19,11 +19,23 @@ const toSnakeCase = (obj: any) => {
 
 class FalAIService extends Service {
     public static async generateVideo(jobData: any): Promise<any> {
-        const { prompt, ...rest } = jobData;
+        const { prompt, imageUrl, ...rest } = jobData;
         const input: { [key: string]: any } = { ...toSnakeCase(rest), prompt };
 
-        if (rest.image_url) {
-            input.image_url = rest.image_url;
+        if (imageUrl) {
+            console.log(`[FalAIService] Image URL detected. Downloading from: ${imageUrl}`);
+            try {
+                const response = await axios.get(imageUrl, {
+                    responseType: 'arraybuffer'
+                });
+                input.image = Buffer.from(response.data);
+
+                console.log('[FalAIService] Image downloaded and converted to buffer. Ready for upload.');
+
+            } catch (downloadError) {
+                console.error(`[FalAIService] Failed to download image from ${imageUrl}`, downloadError);
+                throw new Error(`Failed to download the provided image URL.`);
+            }
         }
 
         console.log(`[FalAIService] Sending request to fal-ai/veo3 with input:`, input);
