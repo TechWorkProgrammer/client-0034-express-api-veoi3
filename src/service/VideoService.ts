@@ -215,6 +215,27 @@ class VideoService extends Service {
             throw error;
         }
     }
+
+    public static async getDetailsById(videoId: string, userId: string): Promise<any> {
+        try {
+            const [favorite, favoriteCount] = await this.prisma.$transaction([
+                this.prisma.favorite.findFirst({
+                    where: {userId, resultId: videoId},
+                }),
+                this.prisma.favorite.count({
+                    where: {resultId: videoId},
+                }),
+            ]);
+
+            return {
+                isFavorited: !!favorite,
+                favoriteCount: favoriteCount,
+            };
+        } catch (error) {
+            this.handleError(error);
+            throw error;
+        }
+    }
 }
 
 export default VideoService;

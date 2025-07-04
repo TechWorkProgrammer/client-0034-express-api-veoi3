@@ -38,14 +38,14 @@ const worker = new Worker('video-generation', async job => {
             userId,
             amount: expAmount,
             type: ExpType.EARN_SUCCESS_GENERATE,
-            description: `You earned ${expAmount} $veoi3 for successfully generating a video.`,
+            description: `You earned ${expAmount} $VEOI for successfully generating a video.`,
             referenceId: videoResultId,
         });
 
         await NotificationController.sendNotification({
             userId,
-            title: `You've earned ${expAmount} $veoi3!`,
-            message: `Congratulations! You received ${expAmount} $veoi3 for creating a new video.`,
+            title: `You've earned ${expAmount} $VEOI!`,
+            message: `Congratulations! You received ${expAmount} $VEOI for creating a new video.`,
             type: 'SUCCESS'
         });
         console.log(`[WORKER] Job ${job.id} completed successfully.`);

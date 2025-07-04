@@ -158,6 +158,15 @@ class VideoController {
 
         Response.Success(res, "Favorite videos retrieved successfully", finalResult);
     }
+
+    public static async getVideoDetails(req: Request, res: EResponse): Promise<void> {
+        const {videoId} = req.params;
+        const userId = res.locals.user.id;
+
+        const videoDetails = await VideoService.getDetailsById(videoId, userId);
+
+        Response.Success(res, "Video details fetched successfully", videoDetails);
+    }
 }
 
 export default VideoController;
