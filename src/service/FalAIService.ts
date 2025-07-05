@@ -20,7 +20,7 @@ const toSnakeCase = (obj: any) => {
 class FalAIService extends Service {
     public static async generateVideo(jobData: any): Promise<any> {
         const { prompt, imageUrl, ...rest } = jobData;
-        const input: { [key: string]: any } = { ...toSnakeCase(rest), prompt };
+        const input: { [key: string]: any } = { ...toSnakeCase(rest), prompt};
 
         if (imageUrl) {
             console.log(`[FalAIService] Image URL detected. Downloading from: ${imageUrl}`);

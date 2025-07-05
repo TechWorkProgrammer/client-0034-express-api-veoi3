@@ -30,7 +30,7 @@ class VideoController {
             const {videoResult} = await VideoService.initiateGeneration({
                 userId: user.id,
                 ...restOfBody,
-                durationSeconds: numericDuration,
+                duration: numericDuration,
                 sampleCount: numericSampleCount,
                 generateAudio: generateAudio === 'true',
                 imagePrompt: imagePromptUrl,
@@ -100,30 +100,29 @@ class VideoController {
 
     public static async toggleLike(req: Request, res: EResponse): Promise<void> {
         const {videoId} = req.params;
+        const {type} = req.body as { type: "DEFAULT" | "GALLERY" };
         const liker = res.locals.user;
 
-        const result = await VideoService.toggleLike(liker.id, videoId);
+        const result = await VideoService.toggleLike(liker.id, videoId, type);
 
         if (result.liked) {
             const video = await VideoService.getVideoWithAuthor(videoId);
-
-            if (video && video.generateAttempts && video.generateAttempts.length > 0) {
-
-                const videoOwnerId = video.generateAttempts[0].userId;
-
-                if (videoOwnerId && videoOwnerId !== liker.id) {
-                    await NotificationController.sendNotification({
-                        userId: videoOwnerId,
-                        title: "You've got a new like!",
-                        message: `${liker.username} liked your video: "${video.prompt.substring(0, 40)}..."`,
-                        type: 'INFO',
-                        actionUrl: `/video/${video.id}`
-                    });
-                }
+            const ownerId = video?.generateAttempts?.[0]?.userId;
+            if (ownerId && ownerId !== liker.id) {
+                await NotificationController.sendNotification({
+                    userId: ownerId,
+                    title: `You've got a new ${type === "GALLERY" ? "gallery-" : ""}like!`,
+                    message: `${liker.username} liked your video: "${video.prompt.substring(0, 40)}..."`,
+                    type: "INFO",
+                });
             }
         }
 
-        Response.Success(res, `Video ${result.liked ? 'liked' : 'unliked'} successfully.`, result);
+        Response.Success(
+            res,
+            `Video ${result.liked ? "liked" : "unliked"} successfully.`,
+            {liked: result.liked, type}
+        );
     }
 
     public static async getResultById(req: Request, res: EResponse): Promise<void> {

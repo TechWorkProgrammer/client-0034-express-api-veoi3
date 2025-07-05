@@ -25,7 +25,16 @@ class VideoValidation extends Validator {
             Joi.object({
                 page: Joi.number().integer().min(1).optional().default(1),
                 limit: Joi.number().integer().min(1).max(50).optional().default(10),
-                sortBy: Joi.string().valid('newest', 'views', 'likes').optional().default('newest')
+                sortBy: Joi.string().valid('newest', 'views', 'likes').optional().default('newest'),
+                type: Joi.string().valid("DEFAULT", "GALLERY").optional().default("DEFAULT"),
+            })
+        );
+    }
+
+    public static like() {
+        return this.validate(
+            Joi.object({
+                type: Joi.string().valid("DEFAULT", "GALLERY").optional().default("DEFAULT"),
             })
         );
     }

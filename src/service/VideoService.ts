@@ -1,6 +1,6 @@
 import Service from "@/service/Service";
 import {GenerationOptions, IGetVideosOptions} from "@/types/Video";
-import {GenerateStatus, Prisma} from "@prisma/client";
+import {FavoriteType, GenerateStatus, Prisma} from "@prisma/client";
 
 class VideoService extends Service {
     public static async initiateGeneration(options: GenerationOptions) {
@@ -93,7 +93,7 @@ class VideoService extends Service {
         }
     }
 
-    public static async handleFailedGeneration(resultId: string, errorMessage: string, adminForNotification: string = 'SYSTEM'): Promise<void> {
+    public static async handleFailedGeneration(resultId: string, errorMessage: string): Promise<void> {
         const attempt = await this.prisma.generateAttempt.findFirst({
             where: {resultId: resultId}
         });
@@ -130,7 +130,7 @@ class VideoService extends Service {
 
     public static async getVideos(options: IGetVideosOptions) {
         try {
-            const {page = 1, limit = 12, sortBy = 'newest', userId, favoritedBy} = options;
+            const {page = 1, limit = 12, sortBy = 'newest', userId, favoritedBy, type = 'DEFAULT'} = options;
 
             let orderBy: Prisma.VideoGenerationResultOrderByWithRelationInput = {createdAt: 'desc'};
             if (sortBy === 'views') orderBy = {views: 'desc'};
@@ -140,7 +140,7 @@ class VideoService extends Service {
                 status: 'COMPLETED',
                 deletedAt: null,
                 generateAttempts: userId ? {some: {userId: userId}} : undefined,
-                favorites: favoritedBy ? {some: {userId: favoritedBy}} : undefined
+                favorites: favoritedBy ? {some: {userId: favoritedBy, type: type as FavoriteType,}} : undefined
             };
 
             const [total, videos] = await this.prisma.$transaction([
@@ -176,18 +176,20 @@ class VideoService extends Service {
         }
     }
 
-    public static async toggleLike(userId: string, videoId: string) {
+    public static async toggleLike(userId: string, resultId: string, type: FavoriteType) {
         try {
-            const existingLike = await this.prisma.favorite.findUnique({
-                where: {userId_resultId: {userId, resultId: videoId}}
+            const existing = await this.prisma.favorite.findUnique({
+                where: {
+                    userId_resultId_type: {userId, resultId, type},
+                },
             });
 
-            if (existingLike) {
-                await this.prisma.favorite.delete({where: {id: existingLike.id}});
+            if (existing) {
+                await this.prisma.favorite.delete({where: {id: existing.id}});
                 return {liked: false};
             } else {
                 await this.prisma.favorite.create({
-                    data: {userId, resultId: videoId}
+                    data: {userId, resultId, type},
                 });
                 return {liked: true};
             }
@@ -216,20 +218,39 @@ class VideoService extends Service {
         }
     }
 
-    public static async getDetailsById(videoId: string, userId: string): Promise<any> {
+    public static async getDetailsById(videoId: string, userId: string): Promise<{
+        isFavorited: boolean;
+        isGalleryFavorite: boolean;
+        favoriteCount: number;
+    }> {
         try {
-            const [favorite, favoriteCount] = await this.prisma.$transaction([
+            const [defaultFav, galleryFav, defaultCount] = await this.prisma.$transaction([
                 this.prisma.favorite.findFirst({
-                    where: {userId, resultId: videoId},
+                    where: {
+                        userId,
+                        resultId: videoId,
+                        type: FavoriteType.DEFAULT,
+                    },
+                }),
+                this.prisma.favorite.findFirst({
+                    where: {
+                        userId,
+                        resultId: videoId,
+                        type: FavoriteType.GALLERY,
+                    },
                 }),
                 this.prisma.favorite.count({
-                    where: {resultId: videoId},
+                    where: {
+                        resultId: videoId,
+                        type: FavoriteType.DEFAULT,
+                    },
                 }),
             ]);
 
             return {
-                isFavorited: !!favorite,
-                favoriteCount: favoriteCount,
+                isFavorited: Boolean(defaultFav),
+                isGalleryFavorite: Boolean(galleryFav),
+                favoriteCount: defaultCount,
             };
         } catch (error) {
             this.handleError(error);

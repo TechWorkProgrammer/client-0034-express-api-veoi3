@@ -14,7 +14,7 @@ class VideoRoute {
         this.router.get("/favorites", Auth.authorize(), VideoValidation.getVideos(), VideoController.getFavoriteVideos);
         this.router.get("/:videoId/details", Auth.authorize(), VideoController.getVideoDetails);
         this.router.post("/:videoId/view", VideoController.incrementView);
-        this.router.post("/:videoId/like", Auth.authorize(), VideoController.toggleLike);
+        this.router.post("/:videoId/like", Auth.authorize(), VideoValidation.like(), VideoController.toggleLike);
         this.router.get("/results/:resultId", VideoController.getResultById);
         return this.router;
     }
