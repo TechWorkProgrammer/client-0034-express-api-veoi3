@@ -42,7 +42,7 @@ class VideoController {
                 userId: user.id,
                 jobData: {
                     ...restOfBody,
-                    duration: numericDuration,
+                    durationSeconds: numericDuration,
                     sampleCount: numericSampleCount,
                     generateAudio: generateAudio === 'true',
                     imageUrl: imagePromptUrl
