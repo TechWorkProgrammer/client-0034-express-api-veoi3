@@ -30,7 +30,7 @@ class VideoController {
             const {videoResult} = await VideoService.initiateGeneration({
                 userId: user.id,
                 ...restOfBody,
-                duration: numericDuration,
+                durationSeconds: numericDuration,
                 sampleCount: numericSampleCount,
                 generateAudio: generateAudio === 'true',
                 imagePrompt: imagePromptUrl,
@@ -42,7 +42,7 @@ class VideoController {
                 userId: user.id,
                 jobData: {
                     ...restOfBody,
-                    durationSeconds: numericDuration,
+                    duration: numericDuration,
                     sampleCount: numericSampleCount,
                     generateAudio: generateAudio === 'true',
                     imageUrl: imagePromptUrl
