@@ -19,7 +19,7 @@ class UserService extends Service {
                     address: address,
                     password,
                     point: 0,
-                    token: 80
+                    token: 130
                 }
             });
         } catch (error) {
@@ -38,7 +38,7 @@ class UserService extends Service {
                     address: address,
                     password,
                     point: 0,
-                    token: 80,
+                    token: 130,
                 }
             });
         } catch (error) {
