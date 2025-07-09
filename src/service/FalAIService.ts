@@ -19,42 +19,47 @@ const toSnakeCase = (obj: any) => {
 
 class FalAIService extends Service {
     public static async generateVideo(jobData: any): Promise<any> {
-        const { prompt, imageUrl, ...rest } = jobData;
-        const input: { [key: string]: any } = { ...toSnakeCase(rest), prompt};
+        const {prompt, imageUrl, ...rest} = jobData;
+        const input: Record<string, any> = {...toSnakeCase(rest), prompt};
 
         if (imageUrl) {
-            console.log(`[FalAIService] Image URL detected. Downloading from: ${imageUrl}`);
+            console.log(`[FalAIService] imageUrl provided, downloading…`);
             try {
-                const response = await axios.get(imageUrl, {
-                    responseType: 'arraybuffer'
-                });
-                input.image = Buffer.from(response.data);
-
-                console.log('[FalAIService] Image downloaded and converted to buffer. Ready for upload.');
-
-            } catch (downloadError) {
-                console.error(`[FalAIService] Failed to download image from ${imageUrl}`, downloadError);
-                throw new Error(`Failed to download the provided image URL.`);
+                console.log(`[FalAIService] download image from : ${imageUrl}`);
+                const resp = await axios.get(imageUrl, {responseType: 'arraybuffer'});
+                console.log(resp.data);
+                const buffer = Buffer.from(resp.data);
+                console.log(
+                    `[FalAIService] Downloaded image buffer (${buffer.length} bytes)`
+                );
+                console.log('[FalAIService] Uploading image stream to Fal storage…');
+                const uploadUrl: string = await fal.storage.upload(buffer as unknown as Blob);
+                console.log(`[FalAIService] Got image_url: ${uploadUrl}`);
+                input.url = uploadUrl;
+            } catch (err: any) {
+                console.error(
+                    `[FalAIService] Error handling imageUrl "${imageUrl}":`,
+                    err
+                );
+                throw new Error(
+                    'Failed to download or upload the provided image URL.'
+                );
             }
         }
 
         console.log(`[FalAIService] Sending request to fal-ai/veo3 with input:`, input);
-
         const result: Result<any> = await fal.subscribe("fal-ai/veo3", {
-            input: input,
+            input,
             logs: true,
             onQueueUpdate(update) {
                 console.log(`[FalAIService] Queue Update: Status=${update.status}`);
             },
         });
 
-        console.log('[FalAIService] Full result object from fal.subscribe:', JSON.stringify(result, null, 2));
-
-        if (!result || !result.data || !result.data.video || !result.data.video.url) {
+        if (!result?.data?.video?.url) {
             console.error("Fal AI returned an unexpected structure:", result);
             throw new Error("Fal AI did not return a valid video object with a URL.");
         }
-
         return result.data;
     }
 

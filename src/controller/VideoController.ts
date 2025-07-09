@@ -12,7 +12,7 @@ class VideoController {
     public static async generate(req: Request, res: EResponse): Promise<void> {
         const user = res.locals.user;
         const file = req.file;
-        const {durationSeconds, sampleCount, generateAudio, ...restOfBody} = req.body;
+        const {durationSeconds, sampleCount, generateAudio, seed, negativePrompt, prompt, aspectRatio, ...restOfBody} = req.body;
 
         const numericDuration = Number(durationSeconds);
         const numericSampleCount = Number(sampleCount) || 1;
@@ -30,22 +30,29 @@ class VideoController {
             const {videoResult} = await VideoService.initiateGeneration({
                 userId: user.id,
                 ...restOfBody,
+                seed: seed,
+                negativePrompt: negativePrompt,
                 durationSeconds: numericDuration,
                 sampleCount: numericSampleCount,
                 generateAudio: generateAudio === 'true',
                 imagePrompt: imagePromptUrl,
                 tokensRequired: tokensRequired,
+                prompt: prompt,
+                aspectRatio: aspectRatio
             });
 
             await QueueManager.videoQueue.add('generate-video', {
                 videoResultId: videoResult.id,
                 userId: user.id,
                 jobData: {
-                    ...restOfBody,
-                    durationSeconds: numericDuration,
-                    sampleCount: numericSampleCount,
-                    generateAudio: generateAudio === 'true',
-                    imageUrl: imagePromptUrl
+                    seed: parseInt(seed),
+                    negative_prompt: negativePrompt,
+                    duration: numericDuration + "s",
+                    generate_audio: generateAudio === 'true',
+                    imageUrl: imagePromptUrl,
+                    prompt: prompt,
+                    enhance_prompt: true,
+                    aspect_ratio: aspectRatio
                 }
             });
 
