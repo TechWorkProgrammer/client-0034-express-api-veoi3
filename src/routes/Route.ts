@@ -14,6 +14,7 @@ import PaymentRoute from "@/routes/PaymentRoute";
 import PaymentManagementRoute from "@/routes/admin/PaymentManagementRoute";
 import NotificationRoute from "@/routes/NotificationRoute";
 import VideoRoute from "@/routes/VideoRoute";
+import AuthController from "@/controller/AuthController";
 
 class Route {
     public static registerRoutes(app: any): void {
@@ -35,6 +36,16 @@ class Route {
         app.use("/admin/payments", PaymentManagementRoute.route());
 
         app.use("/storage/assets", express.static(join(process.cwd(), Variables.ASSETS_PATH)));
+        app.get('/whoami', (req: Request, res: EResponse) => {
+            Response.Success(res, "Success", {
+                ip: AuthController.getIp(req),
+                expressIp: req.ip,
+                forwarded: req.headers['x-forwarded-for'],
+                socket: req.socket.remoteAddress,
+                ips: req.ips,
+            });
+        });
+
         app.use("/*", (_req: Request, res: EResponse) => {
             Response.NotFound(res);
         });

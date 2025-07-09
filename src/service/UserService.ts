@@ -2,14 +2,16 @@ import {randomBytes} from "crypto";
 import Service from "@/service/Service";
 import {Prisma, User} from "@prisma/client";
 import {IGetAllUsersOptions, IPaginatedUserResult} from "@/types/User";
-import {
-    IAddExpOptions,
-    IGetExpHistoryOptions,
-    IPaginatedExpResult,
-} from "@/types/Point";
+import {IAddExpOptions, IGetExpHistoryOptions, IPaginatedExpResult,} from "@/types/Point";
 
 class UserService extends Service {
-    public static async createUser(address: string, password?: string | null): Promise<User> {
+    public static async getUserByIp(ipAddress: string): Promise<User | null> {
+        return this.prisma.user.findUnique({
+            where: {ipAddress},
+        });
+    }
+
+    public static async createUser(address: string, password: string | null, ipAddress: string): Promise<User> {
         try {
             const randomUsername = `user_${randomBytes(4).toString("hex")}`;
 
@@ -18,6 +20,7 @@ class UserService extends Service {
                     username: randomUsername,
                     address: address,
                     password,
+                    ipAddress,
                     point: 0,
                     token: 130
                 }
@@ -28,7 +31,7 @@ class UserService extends Service {
         }
     }
 
-    public static async createUserVeoI(username: string, password?: string | null): Promise<User> {
+    public static async createUserVeoI(username: string, password: string | null, ipAddress: string): Promise<User> {
         try {
             const address = `veoi3_${randomBytes(16).toString("hex")}`;
 
@@ -37,6 +40,7 @@ class UserService extends Service {
                     username: username,
                     address: address,
                     password,
+                    ipAddress,
                     point: 0,
                     token: 130,
                 }
@@ -187,15 +191,15 @@ class UserService extends Service {
 
     public static async getExpHistoryByUser(userId: string, options: IGetExpHistoryOptions): Promise<IPaginatedExpResult> {
         try {
-            const { page = 1, limit = 10 } = options;
+            const {page = 1, limit = 10} = options;
 
             const skip = (page - 1) * limit;
             const [total, history] = await this.prisma.$transaction([
                 this.prisma.expHistory.count({
-                    where: { userId },
+                    where: {userId},
                 }),
                 this.prisma.expHistory.findMany({
-                    where: { userId },
+                    where: {userId},
                     skip: skip,
                     take: limit,
                     orderBy: {
@@ -222,12 +226,12 @@ class UserService extends Service {
     }
 
     public static async addExpAndCreateHistory(options: IAddExpOptions): Promise<User> {
-        const { userId, amount, type, description, referenceId } = options;
+        const {userId, amount, type, description, referenceId} = options;
         try {
             const [updatedUser] = await this.prisma.$transaction([
                 this.prisma.user.update({
-                    where: { id: userId },
-                    data: { point: { increment: amount } },
+                    where: {id: userId},
+                    data: {point: {increment: amount}},
                 }),
                 this.prisma.expHistory.create({
                     data: {

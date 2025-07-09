@@ -8,6 +8,12 @@ import Response from "@/config/Response";
 import Service from "@/service/Service";
 
 class AuthController extends Service {
+    static getIp(req: Request): string {
+        const header = (req.headers['x-forwarded-for'] as string) || '';
+        const ipFromHeader = header.split(',')[0].trim();
+        return req.ip || ipFromHeader || req.socket.remoteAddress || '';
+    }
+
     private static async _createSessionAndSendResponse(res: EResponse, user: User, successMessage: string): Promise<void> {
         const accessToken = Auth.generateAccessToken(user.id);
         const refreshToken = Auth.generateRefreshToken(user.id);
@@ -73,7 +79,12 @@ class AuthController extends Service {
 
         let user = await UserService.getUserByAddress(address);
         if (!user) {
-            user = await UserService.createUser(address, null);
+            const ip = this.getIp(req);
+            if (await UserService.getUserByIp(ip)) {
+                Response.Forbidden(res, "Registration is limited to one account per IP");
+                return;
+            }
+            user = await UserService.createUser(address, null, ip);
         }
 
         await this._createSessionAndSendResponse(res, user, "Wallet login successful");
@@ -108,7 +119,12 @@ class AuthController extends Service {
             Response.BadRequest(res, "Username is already taken");
             return;
         }
-        const user = await UserService.createUserVeoI(username, password);
+        const ip = this.getIp(req);
+        if (await UserService.getUserByIp(ip)) {
+            Response.Forbidden(res, "Registration is limited to one account per IP");
+            return;
+        }
+        const user = await UserService.createUserVeoI(username, password, ip);
         await this._createSessionAndSendResponse(res, user, "Registration successful");
     }
 

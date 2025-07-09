@@ -59,6 +59,7 @@ model User {
   address          String            @unique @db.VarChar(255)
   point            Int               @default(0)
   token            Int               @default(0)
+  ipAddress        String?           @unique @db.VarChar(45)
   role             Role              @default(USER)
   profileImage     String?           @db.VarChar(255)
   password         String?
