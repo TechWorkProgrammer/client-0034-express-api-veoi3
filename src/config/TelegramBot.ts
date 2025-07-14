@@ -11,14 +11,10 @@ export default class TelegramBot {
         this.bot.command("help", TeleHandlers.help);
         this.bot.command("start", TeleHandlers.help);
         this.bot.command("verify", TeleHandlers.verify);
-        this.bot
-            .command("gallery", TeleHandlers.gallery)
-            .action(/^gallery_(\d+)$/, TeleHandlers.gallery);
-
+        this.bot.command("gallery", TeleHandlers.gallery).action(/^gallery_(\d+)$/, TeleHandlers.gallery);
         this.bot.command("detail", TeleHandlers.detail);
         this.bot.command("generate", TeleHandlers.generate);
-
-        this.bot.action(/^video_(.+)$/, TeleHandlers.video);
+        this.bot.command("video", TeleHandlers.video).action(/^video_(.+)$/, TeleHandlers.video);
 
         this.bot.catch((err: any, ctx) => {
             console.error("Telegram Bot Error:", err);

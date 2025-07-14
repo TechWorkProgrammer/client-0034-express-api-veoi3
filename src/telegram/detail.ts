@@ -11,18 +11,18 @@ export async function detail(ctx: Context) {
     }
 
     try {
-        const user = await TelegramService.getDetailUserByTelegram(
-            from.id.toString()
-        );
+        const user = await TelegramService.getDetailUserByTelegram(from.id.toString());
 
         const profileText =
             `👤 *Your Profile*
-        • *ID:* \`${user.id}\`
-        • *Username:* \`${user.username}\`
-        • *Address:* \`${user.address}\`
-        • *Points:* \`${user.point}\`
-        • *Tokens:* \`${user.token}\`
-        `;
+            
+            \`\`\`
+            ID:       ${user.id}
+            Username: ${user.username}
+            Address:  ${user.address}
+            Points:   ${user.point}
+            Tokens:   ${user.token}
+            \`\`\``;
 
         if (user.profileImage) {
             await ctx.replyWithPhoto(user.profileImage, {
@@ -30,7 +30,9 @@ export async function detail(ctx: Context) {
                 parse_mode: "Markdown",
             });
         } else {
-            await ctx.reply(profileText, {parse_mode: "Markdown"});
+            await ctx.reply(profileText, {
+                parse_mode: "Markdown",
+            });
         }
     } catch (err: any) {
         await ctx.reply(`❌ ${err.message}`);

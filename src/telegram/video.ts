@@ -3,25 +3,24 @@ import TelegramService from "@/service/TelegramService";
 import VideoService from "@/service/VideoService";
 
 export async function video(ctx: Context) {
-    let data: string | undefined;
-    if (
-        ctx.callbackQuery &&
-        "data" in ctx.callbackQuery
-    ) {
-        data = ctx.callbackQuery.data;
-    } else if (
-        ctx.message &&
-        typeof (ctx.message as any).text === "string"
-    ) {
-        data = (ctx.message as any).text;
-    }
-    if (!data) {
-        return ctx.reply("ℹ️ Usage: /video <videoId>");
+    let videoId: string | undefined;
+
+    if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
+        const cbData = ctx.callbackQuery.data;
+        if (cbData.startsWith("video_")) {
+            videoId = cbData.replace("video_", "").trim();
+        }
     }
 
-    const vid = data.trim().split(/\s+|_/).pop();
-    if (!vid) {
-        return ctx.reply("ℹ️ Usage: /video <videoId>");
+    if (!videoId && ctx.message && "text" in ctx.message) {
+        const parts = ctx.message.text.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            videoId = parts[1];
+        }
+    }
+
+    if (!videoId) {
+        return ctx.reply("ℹ️ Usage: /video <videoId> or click a gallery button.");
     }
 
     if (!ctx.from) {
@@ -31,7 +30,7 @@ export async function video(ctx: Context) {
 
     try {
         const user = await TelegramService.getDetailUserByTelegram(tgId);
-        const video = await VideoService.getGenerationResult(vid);
+        const video = await VideoService.getGenerationResult(videoId);
 
         const ownerId = video.generateAttempts?.[0]?.userId;
         if (ownerId !== user.id) {
@@ -39,13 +38,16 @@ export async function video(ctx: Context) {
         }
 
         const info =
-            `🎬 *Video Detail*\n` +
-            `• ID: \`${video.id}\`\n` +
-            `• Prompt: _${video.prompt}_\n` +
-            `• Status: \`${video.status}\`\n` +
-            `• Duration: \`${video.durationSeconds}s\`\n` +
-            `• Samples: \`${video.sampleCount}\`\n` +
-            `• Views: \`${video.views}\``;
+            `🎬 *Video Detail*
+        
+            \`\`\`
+            ID:       ${video.id}
+            Prompt:   ${video.prompt}
+            Status:   ${video.status}
+            Duration: ${video.durationSeconds}s
+            Samples:  ${video.sampleCount}
+            Views:    ${video.views}
+            \`\`\``;
 
         const buttons = [];
         if (video.videoFiles.length > 0) {

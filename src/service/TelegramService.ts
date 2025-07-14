@@ -80,9 +80,7 @@ class TelegramService extends Service {
         return acct;
     }
 
-    public static async getDetailUserByTelegram(
-        telegramUserId: string
-    ): Promise<Pick<User, "id" | "username" | "address" | "point" | "token" | "profileImage">> {
+    public static async getDetailUserByTelegram(telegramUserId: string): Promise<Pick<User, "id" | "username" | "address" | "point" | "token" | "profileImage">> {
         const acct = await this.prisma.telegramAccount.findFirst({
             where: {telegramUserId},
             include: {user: true},
@@ -95,6 +93,22 @@ class TelegramService extends Service {
         const {id, username, address, point, token, profileImage} = acct.user;
         return {id, username, address, point, token, profileImage};
 
+    }
+
+    public static async getTelegramAccountByUserId(userId: string): Promise<{
+        telegramUserId: string;
+        username?: string
+    }> {
+        const acct = await this.prisma.telegramAccount.findUnique({
+            where: {userId},
+        });
+        if (!acct) {
+            throw new Error("User has not connected their Telegram account.");
+        }
+        return {
+            telegramUserId: acct.telegramUserId,
+            username: acct.username ?? undefined,
+        };
     }
 }
 

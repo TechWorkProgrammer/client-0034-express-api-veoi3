@@ -5,6 +5,8 @@ import QueueManager from "@/config/QueueManager";
 
 const TOKENS_PER_SECOND = 10;
 const TOKENS_PER_SECOND_AUDIO = 5;
+const DEFAULT_DURATION = 8;
+const SAMPLE_COUNT = 1;
 
 export async function generate(ctx: Context) {
     const msg = ctx.message as any;
@@ -16,25 +18,26 @@ export async function generate(ctx: Context) {
     }
     const tgId = from.id.toString();
 
-    const parts = msg.text.trim().split(/\s+/).slice(1);
-    const numericDuration = Number(parts[0]);
-    const numericSampleCount = Number(parts[1]) || 1;
-    const generateAudio = parts[2] === "true";
-    const seed = parts[3] || undefined;
-    const negativePrompt = parts[4] || undefined;
-    const aspectRatio = parts[5] || "16:9";
-    const prompt = parts.slice(6).join(" ");
-
-    if (!numericDuration || !prompt) {
+    const args = msg.text.trim().split(/\s+/).slice(1);
+    if (args.length === 0) {
         return ctx.reply(
             "ℹ️ Usage:\n" +
-            "/generate <durationSeconds> <sampleCount> <generateAudio(true|false)> " +
-            "<seed?> <negativePrompt?> <aspectRatio?> <prompt…>"
+            "/generate <prompt…> <generateAudio?> <seed?> <negativePrompt?> <aspectRatio?>"
         );
     }
 
+    const aspectRatio = args.length >= 5 ? args[args.length - 1] : "16:9";
+    const negativePrompt = args.length >= 4 ? args[args.length - 2] : undefined;
+    const seed = args.length >= 3 ? args[args.length - 3] : undefined;
+    const generateAudio = args.length >= 2 ? args[args.length - 4] === "true" : false;
+
+    const prompt = args.slice(0, args.length - 4).join(" ") || args.join(" ");
+    if (!prompt) {
+        return ctx.reply("❌ Prompt is required. Please try again.");
+    }
+
     const costPerSecond = TOKENS_PER_SECOND + (generateAudio ? TOKENS_PER_SECOND_AUDIO : 0);
-    const tokensRequired = numericDuration * costPerSecond * numericSampleCount;
+    const tokensRequired = DEFAULT_DURATION * costPerSecond * SAMPLE_COUNT;
 
     try {
         const user = await TelegramService.getDetailUserByTelegram(tgId);
@@ -47,8 +50,8 @@ export async function generate(ctx: Context) {
 
         const {videoResult} = await VideoService.initiateGeneration({
             userId: user.id,
-            durationSeconds: numericDuration,
-            sampleCount: numericSampleCount,
+            durationSeconds: DEFAULT_DURATION,
+            sampleCount: SAMPLE_COUNT,
             imagePrompt: null,
             generateAudio,
             seed,
@@ -64,7 +67,7 @@ export async function generate(ctx: Context) {
             jobData: {
                 seed: seed ? parseInt(seed, 10) : undefined,
                 negative_prompt: negativePrompt,
-                duration: `${numericDuration}s`,
+                duration: `${DEFAULT_DURATION}s`,
                 generate_audio: generateAudio,
                 prompt,
                 enhance_prompt: true,

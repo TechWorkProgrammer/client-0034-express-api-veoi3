@@ -5,6 +5,8 @@ import FalAIService from "@/service/FalAIService";
 import NotificationController from "@/controller/NotificationController";
 import Variables from "@/config/Variables";
 import UserService from "@/service/UserService";
+import TelegramService from "@/service/TelegramService";
+import {Telegraf} from "telegraf";
 
 Variables.boot();
 
@@ -16,6 +18,7 @@ const connectionOptions = {
 
 console.log("🚀 Video generation worker (using Fal AI) started...");
 
+const tgBot = new Telegraf(Variables.TELEGRAM_BOT_KEY);
 const worker = new Worker('video-generation', async job => {
     const {videoResultId, userId, jobData} = job.data;
     console.log(`[WORKER] Processing job ${job.id} for videoResult: ${videoResultId}`);
@@ -33,6 +36,22 @@ const worker = new Worker('video-generation', async job => {
             actionUrl: "/gallery",
             type: 'SUCCESS'
         });
+        try {
+            const acct = await TelegramService.getTelegramAccountByUserId(userId);
+            await tgBot.telegram.sendMessage(
+                acct.telegramUserId!,
+                `🎬 *Your video is ready!*
+
+                \`\`\`
+                ID:     ${videoResultId}
+                Prompt: ${jobData.prompt}
+                \`\`\`
+                
+                Use /video ${videoResultId} to view it.`,
+                {parse_mode: "Markdown"}
+            );
+        } catch {
+        }
         const expAmount = 10;
         await UserService.addExpAndCreateHistory({
             userId,
