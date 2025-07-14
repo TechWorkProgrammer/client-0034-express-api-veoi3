@@ -15,6 +15,7 @@ import PaymentManagementRoute from "@/routes/admin/PaymentManagementRoute";
 import NotificationRoute from "@/routes/NotificationRoute";
 import VideoRoute from "@/routes/VideoRoute";
 import AuthController from "@/controller/AuthController";
+import TelegramRoute from "@/routes/TelegramRoute";
 
 class Route {
     public static registerRoutes(app: any): void {
@@ -30,6 +31,7 @@ class Route {
         app.use('/plans', PlanRoute.route());
         app.use('/payment', PaymentRoute.route());
         app.use('/video', VideoRoute.route());
+        app.use('/telegram', TelegramRoute.route());
 
         app.use("/admin/dashboard", DashboardRoute.route());
         app.use("/admin/users", UserManagementRoute.route());

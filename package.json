@@ -9,7 +9,7 @@
     "start": "ts-node -r tsconfig-paths/register src/main.ts",
     "build": "tsc",
     "start:prod": "node dist/main.js",
-    "migrate": "prisma migrate dev",
+    "migrate": "prisma migrate deploy && prisma generate",
     "worker": "ts-node -r tsconfig-paths/register src/worker.ts",
     "worker:prod": "node dist/worker.js"
   },
@@ -34,6 +34,7 @@
     "process": "^0.11.10",
     "response-time": "^2.3.3",
     "socket.io": "^4.8.0",
+    "telegraf": "^4.16.3",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

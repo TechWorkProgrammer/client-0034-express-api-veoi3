@@ -63,6 +63,7 @@ model User {
   role             Role              @default(USER)
   profileImage     String?           @db.VarChar(255)
   password         String?
+  telegramAccount  TelegramAccount?
   favorites        Favorite[]
   sessions         Session[]
   expHistory       ExpHistory[]
@@ -248,4 +249,19 @@ model ItemPack {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+}
+
+model TelegramAccount {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  telegramUserId String    @db.VarChar(50)
+  username       String?   @db.VarChar(50)
+  connectedAt    DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([telegramUserId])
 }

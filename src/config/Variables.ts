@@ -22,6 +22,8 @@ class Variables {
     static REDIS_HOST: string;
     static REDIS_PORT: number;
     static REDIS_PASSWORD?: string;
+    static TELEGRAM_BOT_USERNAME: string;
+    static TELEGRAM_BOT_KEY: string;
 
     static boot(): void {
         dotenv.config();
@@ -48,6 +50,8 @@ class Variables {
         this.REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1';
         this.REDIS_PORT = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379;
         this.REDIS_PASSWORD = process.env.REDIS_PASSWORD || undefined;
+        this.TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || this.throwError("TELEGRAM_BOT_USERNAME");
+        this.TELEGRAM_BOT_KEY = process.env.TELEGRAM_BOT_KEY || this.throwError("TELEGRAM_BOT_KEY");
     }
 
     static throwError(variable: string): never {

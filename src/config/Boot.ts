@@ -9,6 +9,7 @@ import Variables from "@/config/Variables";
 import AnimationConsole from "@/utils/Console";
 import Route from "@/routes/Route";
 import QueueManager from "@/config/QueueManager";
+import TelegramBot from "@/config/TelegramBot";
 
 class Boot {
     private static app = express();
@@ -40,6 +41,7 @@ class Boot {
         WebSocket.boot(this.server);
         Limiter.boot();
         QueueManager.boot();
+        TelegramBot.boot();
     }
 
     private static initialize(): void {

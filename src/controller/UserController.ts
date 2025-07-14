@@ -2,6 +2,7 @@ import {Request, Response as EResponse} from "express";
 import UserService from "@/service/UserService";
 import Response from "@/config/Response";
 import {moveAndStoreImage} from "@/config/Multer";
+import {User} from "@prisma/client";
 
 class UserController {
     public static async updateUsername(req: Request, res: EResponse): Promise<void> {
