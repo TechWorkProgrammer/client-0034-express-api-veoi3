@@ -15,14 +15,14 @@ export async function detail(ctx: Context) {
 
         const profileText =
             `👤 *Your Profile*
-            
-            \`\`\`
-            ID:       ${user.id}
-            Username: ${user.username}
-            Address:  ${user.address}
-            Points:   ${user.point}
-            Tokens:   ${user.token}
-            \`\`\``;
+
+\`\`\`
+ID:       ${user.id}
+Username: ${user.username}
+Address:  ${user.address}
+Points:   ${user.point}
+Tokens:   ${user.token}
+\`\`\``;
 
         if (user.profileImage) {
             await ctx.replyWithPhoto(user.profileImage, {

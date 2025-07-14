@@ -39,15 +39,15 @@ export async function video(ctx: Context) {
 
         const info =
             `🎬 *Video Detail*
-        
-            \`\`\`
-            ID:       ${video.id}
-            Prompt:   ${video.prompt}
-            Status:   ${video.status}
-            Duration: ${video.durationSeconds}s
-            Samples:  ${video.sampleCount}
-            Views:    ${video.views}
-            \`\`\``;
+
+\`\`\`
+ID:       ${video.id}
+Prompt:   ${video.prompt}
+Status:   ${video.status}
+Duration: ${video.durationSeconds}s
+Samples:  ${video.sampleCount}
+Views:    ${video.views}
+\`\`\``;
 
         const buttons = [];
         if (video.videoFiles.length > 0) {

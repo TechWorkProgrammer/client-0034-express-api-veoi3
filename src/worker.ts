@@ -42,12 +42,12 @@ const worker = new Worker('video-generation', async job => {
                 acct.telegramUserId!,
                 `🎬 *Your video is ready!*
 
-                \`\`\`
-                ID:     ${videoResultId}
-                Prompt: ${jobData.prompt}
-                \`\`\`
-                
-                Use /video ${videoResultId} to view it.`,
+\`\`\`
+ID:     ${videoResultId}
+Prompt: ${jobData.prompt}
+\`\`\`
+
+Use /video ${videoResultId} to view it.`,
                 {parse_mode: "Markdown"}
             );
         } catch {
