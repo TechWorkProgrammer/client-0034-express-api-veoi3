@@ -9,6 +9,7 @@ export default class TelegramBot {
         this.bot = new Telegraf(Variables.TELEGRAM_BOT_KEY);
 
         this.bot.command("help", TeleHandlers.help);
+        this.bot.command("start", TeleHandlers.help);
         this.bot.command("verify", TeleHandlers.verify);
         this.bot
             .command("gallery", TeleHandlers.gallery)
