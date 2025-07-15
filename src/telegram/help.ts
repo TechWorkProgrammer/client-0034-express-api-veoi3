@@ -1,8 +1,8 @@
-import { Context } from "telegraf";
+import {Context} from "telegraf";
 
 export async function help(ctx: Context) {
     const text =
-`🤖 *Available Commands:*
+        `🤖 *Available Commands:*
 
 \`\`\`
 /help                             Show this menu
@@ -10,13 +10,8 @@ export async function help(ctx: Context) {
 /gallery [page]                   View your video gallery
 /detail                           View your account profile
 /video <videoId>                  Show details for a video
-/generate <...>                   Generate a new video
-\`\`\`
-
-Use /generate with:
-\`\`\`
-/generate <prompt…> <generateAudio?> <seed?> <negativePrompt?> <aspectRatio?>
+/generate <prompt>                Generate a new video
 \`\`\``;
 
-    await ctx.reply(text, { parse_mode: "Markdown" });
+    await ctx.reply(text, {parse_mode: "Markdown"});
 }
