@@ -8,7 +8,6 @@ const SAMPLE_COUNT = 1;
 const TOKENS_PER_SECOND = 15;
 const ASPECT_RATIO = "16:9";
 const GENERATE_AUDIO = true;
-const SEED = undefined;
 const NEGATIVE_PROMPT = undefined;
 
 export async function generate(ctx: Context) {
@@ -27,6 +26,7 @@ export async function generate(ctx: Context) {
         return ctx.reply("ℹ️ Usage: /generate <your prompt here>");
     }
 
+    const seed = Math.floor(Math.random() * 90000000) + 10000000;
     const tokensRequired = DEFAULT_DURATION * TOKENS_PER_SECOND * SAMPLE_COUNT;
 
     try {
@@ -43,7 +43,7 @@ export async function generate(ctx: Context) {
             sampleCount: SAMPLE_COUNT,
             imagePrompt: null,
             generateAudio: GENERATE_AUDIO,
-            seed: SEED,
+            seed,
             negativePrompt: NEGATIVE_PROMPT,
             aspectRatio: ASPECT_RATIO,
             prompt,
@@ -54,7 +54,7 @@ export async function generate(ctx: Context) {
             videoResultId: videoResult.id,
             userId: user.id,
             jobData: {
-                seed: SEED,
+                seed,
                 negative_prompt: NEGATIVE_PROMPT,
                 duration: `${DEFAULT_DURATION}s`,
                 generate_audio: GENERATE_AUDIO,
