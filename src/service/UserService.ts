@@ -22,7 +22,7 @@ class UserService extends Service {
                     password,
                     ipAddress,
                     point: 0,
-                    token: 130
+                    token: 375
                 }
             });
         } catch (error) {
@@ -42,7 +42,7 @@ class UserService extends Service {
                     password,
                     ipAddress,
                     point: 0,
-                    token: 130,
+                    token: 375,
                 }
             });
         } catch (error) {
