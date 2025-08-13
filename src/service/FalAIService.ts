@@ -5,6 +5,9 @@ import path from 'path';
 import {v4 as uuidv4} from 'uuid';
 import Service from "@/service/Service";
 import Variables from '@/config/Variables';
+import {spawn} from 'child_process';
+import os from 'os';
+import crypto from 'crypto';
 
 const toSnakeCase = (obj: any) => {
     const newObj: { [key: string]: any } = {};
@@ -65,27 +68,74 @@ class FalAIService extends Service {
 
     public static async downloadAndSave(videoUrl: string): Promise<string> {
         const uniqueFileName = `${uuidv4()}.mp4`;
-        const localFilePath = path.join(process.cwd(), Variables.ASSETS_VIDEO_PATH, uniqueFileName);
+        const outAbsPath = path.join(process.cwd(), Variables.ASSETS_VIDEO_PATH, uniqueFileName);
+        const outPublicUrl = `${Variables.BASE_URL}/${path.join(Variables.ASSETS_VIDEO_PATH, uniqueFileName).replace(/\\/g, '/')}`;
 
-        console.log(`[FalAIService] Downloading video from ${videoUrl}...`);
+        const tmpDir = os.tmpdir();
+        const tmpVid = path.join(tmpDir, `veo3_${crypto.randomBytes(6).toString('hex')}.mp4`);
+        const tmpPng = path.join(tmpDir, `wm_${crypto.randomBytes(6).toString('hex')}.png`);
 
-        const writer = fs.createWriteStream(localFilePath);
-        const response = await axios({
-            url: videoUrl,
-            method: 'GET',
-            responseType: 'stream'
+        console.log(`[FalAIService] Downloading video to ${tmpVid}...`);
+        await new Promise<void>(async (resolve, reject) => {
+            const writer = fs.createWriteStream(tmpVid);
+            try {
+                const resp = await axios({url: videoUrl, method: 'GET', responseType: 'stream'});
+                resp.data.pipe(writer);
+                writer.on('finish', () => resolve());
+                writer.on('error', reject);
+            } catch (e) {
+                reject(e);
+            }
         });
 
-        response.data.pipe(writer);
-
-        return new Promise((resolve, reject) => {
-            writer.on('finish', () => {
-                console.log(`[FalAIService] Saved video locally to ${localFilePath}`);
-                const relativePath = `${Variables.BASE_URL}/${path.join(Variables.ASSETS_VIDEO_PATH, uniqueFileName).replace(/\\/g, '/')}`;
-                resolve(relativePath);
-            });
-            writer.on('error', reject);
+        const watermarkUrl = 'https://veoi3.app/icon_watermark.png';
+        console.log(`[FalAIService] Downloading watermark from ${watermarkUrl}...`);
+        await new Promise<void>(async (resolve, reject) => {
+            const writer = fs.createWriteStream(tmpPng);
+            try {
+                const resp = await axios({url: watermarkUrl, method: 'GET', responseType: 'stream'});
+                resp.data.pipe(writer);
+                writer.on('finish', () => resolve());
+                writer.on('error', reject);
+            } catch (e) {
+                reject(e);
+            }
         });
+
+        fs.mkdirSync(path.dirname(outAbsPath), {recursive: true});
+
+        const ffArgs = [
+            '-y',
+            '-i', tmpVid,
+            '-i', tmpPng,
+            '-filter_complex',
+            "[1][0]scale2ref=w='W*0.12':h=-1[wm][base];" +
+            " [base][wm]overlay=x='W*0.25 - w/2':y='H - h - H*0.05'",
+            '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast',
+            '-c:a', 'copy',
+            outAbsPath
+        ];
+
+        console.log('[FalAIService] Running ffmpeg:', ffArgs.join(' '));
+        await new Promise<void>((resolve, reject) => {
+            const ff = spawn('ffmpeg', ffArgs);
+            ff.stdout.on('data', d => process.stdout.write(d));
+            ff.stderr.on('data', d => process.stderr.write(d));
+            ff.on('error', reject);
+            ff.on('close', (code) => code === 0 ? resolve() : reject(new Error(`ffmpeg exit ${code}`)));
+        });
+
+        try {
+            fs.unlinkSync(tmpVid);
+        } catch {
+        }
+        try {
+            fs.unlinkSync(tmpPng);
+        } catch {
+        }
+
+        console.log(`[FalAIService] Saved watermarked video to ${outAbsPath}`);
+        return outPublicUrl;
     }
 }
 
