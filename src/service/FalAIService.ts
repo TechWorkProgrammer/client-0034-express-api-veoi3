@@ -6,8 +6,9 @@ import {v4 as uuidv4} from 'uuid';
 import Service from "@/service/Service";
 import Variables from '@/config/Variables';
 import {spawn} from 'child_process';
-import os from 'os';
 import crypto from 'crypto';
+import {pipeline} from 'stream/promises';
+import os from 'os';
 
 const toSnakeCase = (obj: any) => {
     const newObj: { [key: string]: any } = {};
@@ -19,6 +20,31 @@ const toSnakeCase = (obj: any) => {
     }
     return newObj;
 };
+
+
+async function ensureWritableDir(dir: string): Promise<string> {
+    try {
+        await fs.promises.mkdir(dir, {recursive: true});
+        await fs.promises.access(dir, fs.constants.W_OK);
+        return dir;
+    } catch {
+        const fallback = os.tmpdir();
+        await fs.promises.access(fallback, fs.constants.W_OK);
+        return fallback;
+    }
+}
+
+async function downloadFile(url: string, outPath: string): Promise<void> {
+    const resp = await axios.get(url, {
+        responseType: 'stream',
+        timeout: 60_000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+    });
+    await fs.promises.mkdir(path.dirname(outPath), {recursive: true});
+    const writer = fs.createWriteStream(outPath);
+    await pipeline(resp.data, writer);
+}
 
 class FalAIService extends Service {
     public static async generateVideo(jobData: any): Promise<any> {
@@ -71,71 +97,52 @@ class FalAIService extends Service {
         const outAbsPath = path.join(process.cwd(), Variables.ASSETS_VIDEO_PATH, uniqueFileName);
         const outPublicUrl = `${Variables.BASE_URL}/${path.join(Variables.ASSETS_VIDEO_PATH, uniqueFileName).replace(/\\/g, '/')}`;
 
-        const tmpDir = os.tmpdir();
-        const tmpVid = path.join(tmpDir, `veo3_${crypto.randomBytes(6).toString('hex')}.mp4`);
-        const tmpPng = path.join(tmpDir, `wm_${crypto.randomBytes(6).toString('hex')}.png`);
+        const tempRoot = await ensureWritableDir(Variables.TEMP_PATH);
+        const tmpVid = path.join(tempRoot, `veo3_${crypto.randomBytes(6).toString('hex')}.mp4`);
+        const tmpPng = path.join(tempRoot, `wm_${crypto.randomBytes(6).toString('hex')}.png`);
 
-        console.log(`[FalAIService] Downloading video to ${tmpVid}...`);
-        await new Promise<void>(async (resolve, reject) => {
-            const writer = fs.createWriteStream(tmpVid);
-            try {
-                const resp = await axios({url: videoUrl, method: 'GET', responseType: 'stream'});
-                resp.data.pipe(writer);
-                writer.on('finish', () => resolve());
-                writer.on('error', reject);
-            } catch (e) {
-                reject(e);
-            }
-        });
+        await downloadFile(videoUrl, tmpVid);
+        await downloadFile('https://veoi3.app/icon_watermark.png', tmpPng);
 
-        const watermarkUrl = 'https://veoi3.app/icon_watermark.png';
-        console.log(`[FalAIService] Downloading watermark from ${watermarkUrl}...`);
-        await new Promise<void>(async (resolve, reject) => {
-            const writer = fs.createWriteStream(tmpPng);
-            try {
-                const resp = await axios({url: watermarkUrl, method: 'GET', responseType: 'stream'});
-                resp.data.pipe(writer);
-                writer.on('finish', () => resolve());
-                writer.on('error', reject);
-            } catch (e) {
-                reject(e);
-            }
-        });
-
-        fs.mkdirSync(path.dirname(outAbsPath), {recursive: true});
+        await fs.promises.mkdir(path.dirname(outAbsPath), {recursive: true});
 
         const ffArgs = [
             '-y',
             '-i', tmpVid,
             '-i', tmpPng,
             '-filter_complex',
-            "[1:v][0:v]scale2ref=w=main_w*0.12:h=-1[wm][base];" +
-            "[base][wm]overlay=x=main_w*0.25 - w/2:y=main_h - h - main_h*0.05:format=auto",
-            '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast',
+            "[0:v]setpts=PTS-STARTPTS[base];" +
+            "[1:v][base]scale2ref=w=main_w*0.12:h=-1[wm][ref];" +
+            "[ref][wm]overlay=x=main_w*0.25 - w/2:y=main_h - h - main_h*0.05:format=auto[vout]",
+            '-map', '[vout]',
+            '-map', '0:a?',
+            '-c:v', 'libx264',
+            '-crf', '18',
+            '-preset', 'veryfast',
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
             '-c:a', 'copy',
+            '-shortest',
             outAbsPath
         ];
 
-
-        console.log('[FalAIService] Running ffmpeg:', ffArgs.join(' '));
         await new Promise<void>((resolve, reject) => {
             const ff = spawn('ffmpeg', ffArgs);
             ff.stdout.on('data', d => process.stdout.write(d));
             ff.stderr.on('data', d => process.stderr.write(d));
             ff.on('error', reject);
-            ff.on('close', (code) => code === 0 ? resolve() : reject(new Error(`ffmpeg exit ${code}`)));
+            ff.on('close', code => code === 0 ? resolve() : reject(new Error(`ffmpeg exit ${code}`)));
         });
 
         try {
-            fs.unlinkSync(tmpVid);
+            await fs.promises.unlink(tmpVid);
         } catch {
         }
         try {
-            fs.unlinkSync(tmpPng);
+            await fs.promises.unlink(tmpPng);
         } catch {
         }
 
-        console.log(`[FalAIService] Saved watermarked video to ${outAbsPath}`);
         return outPublicUrl;
     }
 }
