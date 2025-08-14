@@ -106,6 +106,8 @@ class FalAIService extends Service {
 
         await fs.promises.mkdir(path.dirname(outAbsPath), {recursive: true});
 
+        const wmFile = tmpPng.replace(/\\/g, '/');
+
         const wmFileEsc = "'" + wmFile.replace(/'/g, "'\\''") + "'";
 
         const ffArgs = [
@@ -126,7 +128,6 @@ class FalAIService extends Service {
             '-c:a', 'copy',
             outAbsPath
         ];
-
 
         await new Promise<void>((resolve, reject) => {
             const ff = spawn('ffmpeg', ffArgs);
