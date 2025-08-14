@@ -112,8 +112,9 @@ class FalAIService extends Service {
             '-i', tmpPng,
             '-filter_complex',
             "[0:v]setpts=PTS-STARTPTS[base];" +
-            "[1:v][base]scale2ref=w=-1:h=main_h*0.12[wm][ref];" +
-            "[ref][wm]overlay=x=main_w*0.25 - w/2:y=main_h - h - main_h*0.05:format=auto[vout]",
+            "[1:v]format=rgba,loop=999999:size=1:start=0,setpts=N/FRAME_RATE/TB[wmraw];" +
+            "[wmraw][base]scale2ref=w=main_w*0.30:h=-1[wm][ref];" +
+            "[ref][wm]overlay=x=main_w*0.75 - w/2:y=main_h - h - main_h*0.05:format=auto[vout]",
             '-map', '[vout]',
             '-map', '0:a?',
             '-c:v', 'libx264',
@@ -122,7 +123,6 @@ class FalAIService extends Service {
             '-pix_fmt', 'yuv420p',
             '-movflags', '+faststart',
             '-c:a', 'copy',
-            '-shortest',
             outAbsPath
         ];
 
