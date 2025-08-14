@@ -9,6 +9,7 @@ import {spawn} from 'child_process';
 import crypto from 'crypto';
 import {pipeline} from 'stream/promises';
 import os from 'os';
+import {resolveFromRoot} from "@/utils/path-utils";
 
 const toSnakeCase = (obj: any) => {
     const newObj: { [key: string]: any } = {};
@@ -94,30 +95,32 @@ class FalAIService extends Service {
 
     public static async downloadAndSave(videoUrl: string): Promise<string> {
         const uniqueFileName = `${uuidv4()}.mp4`;
-        const outAbsPath = path.join(process.cwd(), Variables.ASSETS_VIDEO_PATH, uniqueFileName);
+        const assetsVideoDir = resolveFromRoot(Variables.ASSETS_VIDEO_PATH);
+        const outAbsPath = path.join(assetsVideoDir, uniqueFileName);
         const outPublicUrl = `${Variables.BASE_URL}/${path.join(Variables.ASSETS_VIDEO_PATH, uniqueFileName).replace(/\\/g, '/')}`;
 
-        const tempRoot = await ensureWritableDir(Variables.TEMP_PATH);
+        const tempRoot = await ensureWritableDir(resolveFromRoot(Variables.TEMP_PATH));
         const tmpVid = path.join(tempRoot, `veo3_${crypto.randomBytes(6).toString('hex')}.mp4`);
         const tmpPng = path.join(tempRoot, `wm_${crypto.randomBytes(6).toString('hex')}.png`);
+
+        console.log(`Temporary PNG on :${tmpPng}`);
+        console.log(`Temporary Video on :${tmpVid}`);
+        console.log(`Result Video on :${outAbsPath}`);
 
         await downloadFile(videoUrl, tmpVid);
         await downloadFile('https://veoi3.app/icon_watermark.png', tmpPng);
 
         await fs.promises.mkdir(path.dirname(outAbsPath), {recursive: true});
 
-        const wmFile = tmpPng.replace(/\\/g, '/');
-
-        const wmFileEsc = "'" + wmFile.replace(/'/g, "'\\''") + "'";
+        const pngForCmd = tmpPng.replace(/\\/g, '/');
 
         const ffArgs = [
             '-y',
             '-i', tmpVid,
+            '-loop', '1', '-i', pngForCmd,
             '-filter_complex',
-            "movie=" + wmFileEsc + ",format=rgba,loop=loop=-1:size=1:start=0,fps=24,fifo,setpts=N/FRAME_RATE/TB[wmraw];" +
-            "[0:v]fps=24,setpts=PTS-STARTPTS[base];" +
-            "[wmraw][base]scale2ref=w=main_w*0.40:h=-1[wm][ref];" +
-            "[ref][wm]overlay=x=main_w*0.05:y=main_h - h - main_h*0.05:format=auto[vout]",
+            "[1:v][0:v]scale2ref=w=main_w*0.40:h=main_w*0.08[wm][base];" +
+            "[base][wm]overlay=x=main_w*0.05:y=main_h - h - main_h*0.05:format=auto[vout]",
             '-map', '[vout]',
             '-map', '0:a?',
             '-c:v', 'libx264',
@@ -126,6 +129,7 @@ class FalAIService extends Service {
             '-pix_fmt', 'yuv420p',
             '-movflags', '+faststart',
             '-c:a', 'copy',
+            '-shortest',
             outAbsPath
         ];
 
