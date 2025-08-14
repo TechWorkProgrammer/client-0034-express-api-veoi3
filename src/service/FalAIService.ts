@@ -106,15 +106,16 @@ class FalAIService extends Service {
 
         await fs.promises.mkdir(path.dirname(outAbsPath), {recursive: true});
 
-        const wmFile = tmpPng.replace(/\\/g, '/');
+        const wmFileEsc = "'" + wmFile.replace(/'/g, "'\\''") + "'";
 
         const ffArgs = [
             '-y',
             '-i', tmpVid,
             '-filter_complex',
-            "movie=" + wmFile + "[wmraw];" +
-            "[wmraw][0:v]scale2ref=w=main_w*0.35:h=-1[wm][base];" +
-            "[base][wm]overlay=x=main_w*0.75 - w/2:y=main_h - h - main_h*0.05:format=auto[vout]",
+            "movie=" + wmFileEsc + ",format=rgba,loop=loop=-1:size=1:start=0,fps=24,fifo,setpts=N/FRAME_RATE/TB[wmraw];" +
+            "[0:v]fps=24,setpts=PTS-STARTPTS[base];" +
+            "[wmraw][base]scale2ref=w=main_w*0.40:h=-1[wm][ref];" +
+            "[ref][wm]overlay=x=main_w*0.05:y=main_h - h - main_h*0.05:format=auto[vout]",
             '-map', '[vout]',
             '-map', '0:a?',
             '-c:v', 'libx264',
@@ -125,6 +126,7 @@ class FalAIService extends Service {
             '-c:a', 'copy',
             outAbsPath
         ];
+
 
         await new Promise<void>((resolve, reject) => {
             const ff = spawn('ffmpeg', ffArgs);
