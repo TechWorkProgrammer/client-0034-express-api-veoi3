@@ -112,7 +112,7 @@ class FalAIService extends Service {
             '-i', tmpPng,
             '-filter_complex',
             "[0:v]setpts=PTS-STARTPTS[base];" +
-            "[1:v][base]scale2ref=w=main_w*0.12:h=-1[wm][ref];" +
+            "[1:v][base]scale2ref=w=-1:h=main_h*0.12[wm][ref];" +
             "[ref][wm]overlay=x=main_w*0.25 - w/2:y=main_h - h - main_h*0.05:format=auto[vout]",
             '-map', '[vout]',
             '-map', '0:a?',
