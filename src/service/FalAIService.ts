@@ -109,12 +109,13 @@ class FalAIService extends Service {
             '-i', tmpVid,
             '-i', tmpPng,
             '-filter_complex',
-            "[1][0]scale2ref=w='W*0.12':h=-1[wm][base];" +
-            " [base][wm]overlay=x='W*0.25 - w/2':y='H - h - H*0.05'",
+            "[1:v][0:v]scale2ref=w=main_w*0.12:h=-1[wm][base];" +
+            "[base][wm]overlay=x=main_w*0.25 - w/2:y=main_h - h - main_h*0.05:format=auto",
             '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast',
             '-c:a', 'copy',
             outAbsPath
         ];
+
 
         console.log('[FalAIService] Running ffmpeg:', ffArgs.join(' '));
         await new Promise<void>((resolve, reject) => {
