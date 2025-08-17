@@ -1,4 +1,4 @@
-import readline from "readline";
+import * as readline from "readline";
 import Variables from "./src/config/Variables";
 import FalAIService from "./src/service/FalAIService";
 
