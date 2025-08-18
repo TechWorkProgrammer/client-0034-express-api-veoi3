@@ -120,7 +120,7 @@ class FalAIService extends Service {
             '-loop', '1', '-i', pngForCmd,
             '-filter_complex',
             "[1:v][0:v]scale2ref=w=main_w*0.25:h=main_w*0.08[wm][base];" +
-            "[base][wm]overlay=x=main_w*0.12:y=(main_h-h)/2:format=auto[vout]",
+            "[base][wm]overlay=x=(main_w-w)/2:y=(main_h-h)/2:format=auto[vout]",
             '-map', '[vout]',
             '-map', '0:a?',
             '-c:v', 'libx264',
