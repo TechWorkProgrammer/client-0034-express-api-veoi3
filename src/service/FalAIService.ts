@@ -119,8 +119,8 @@ class FalAIService extends Service {
             '-i', tmpVid,
             '-loop', '1', '-i', pngForCmd,
             '-filter_complex',
-            "[1:v][0:v]scale2ref=w=main_w*0.20:h=main_w*0.06[wm][base];" +
-            "[base][wm]overlay=x=main_w*0.12:y=(main_h-h)/2+main_h*0.1:format=auto[vout]",
+            "[1:v][0:v]scale2ref=w=main_w*0.25:h=main_w*0.08[wm][base];" +
+            "[base][wm]overlay=x=main_w*0.12:y=(main_h-h)/2:format=auto[vout]",
             '-map', '[vout]',
             '-map', '0:a?',
             '-c:v', 'libx264',
